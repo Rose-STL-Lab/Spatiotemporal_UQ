@@ -20,8 +20,8 @@ pip install -r requirements.txt
 ```
 
 ## [Dataset](https://drive.google.com/drive/folders/102QfowJq7zmyR3W5LjF1K_eNZ0eAA8RL?usp=sharing)
-1.
-2.
+1. Download DeepGLEAM/autoreg_shuffled_data to DeepGLEAM/*uq_model*/data folder (*uq_model* includes dropout_model, maemis_model, quantile_model, and sq_model). 
+2. Download traffic/METR-LA to traffic/*uq_model*/data folder (*uq_model* includes dropout_model, maemis_model, quantile_model, and sq_model). 
 3. Download convLSTM_PM2_5/data to convLSTM_PM2_5 folder.
 
 
@@ -35,16 +35,18 @@ Deep learning is gaining increasing popularity for spatiotemporal forecasting. H
 3. convLSTM_PM25/: Five UQ methods for experiments on air quality forecasting tasks.
 
 
-## Model Training
-uq_model includes dropout_model, maemis_model, quantile_model, sq_model, and sgmcmc_model
+## Model Training and Evaluation
+*uq_model* includes dropout_model, maemis_model, quantile_model, and sq_model.
 ```bash
 # DeepGLEAM
 cd DeepGLEAM/uq_model
 python dcrnn_train_pytorch.py --config_filename=data/model/dcrnn_cov.yaml
+./test.sh
 
 # traffic
 cd traffic/uq_model
 python dcrnn_train_pytorch.py --config_filename=data/model/dcrnn_la.yaml
+python run_demo_pytorch.py
 
 # air quality
 cd convLSTM_PM2_5/uq_model
