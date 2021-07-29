@@ -26,8 +26,8 @@ if __name__ == '__main__':
     sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
-    parser.add_argument('--config_filename', default='data/model/pretrained/COV-19/config.yaml', type=str,
+    parser.add_argument('--config_filename', default='data/model/pretrained/METR-LA/config.yaml', type=str,
                         help='Config file for pretrained model.')
-    parser.add_argument('--output_filename', default='data/alltest_deepgleam_point_week33_seed1_epo69.npz')
+    parser.add_argument('--output_filename', default='data/point_seed0.npz')
     args = parser.parse_args()
     run_dcrnn(args)

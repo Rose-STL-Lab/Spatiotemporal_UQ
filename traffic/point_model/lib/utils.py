@@ -148,8 +148,6 @@ def config_logging(log_dir, log_filename='info.log', level=logging.INFO):
 def get_logger(log_dir, name, log_filename='info.log', level=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
-    logger.handlers = []
     # Add file handler and stdout handler
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler = logging.FileHandler(os.path.join(log_dir, log_filename))
@@ -183,18 +181,15 @@ def load_dataset(dataset_dir, batch_size, test_batch_size=None, **kwargs):
         cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
         data['x_' + category] = cat_data['x']
         data['y_' + category] = cat_data['y']
-    scaler_x = StandardScaler(mean=data['x_train'][..., :-1].mean(), std=data['x_train'][..., :-1].std())
-    scaler_y = StandardScaler(mean=data['y_train'].mean(), std=data['y_train'].std())
+    scaler = StandardScaler(mean=data['x_train'][..., 0].mean(), std=data['x_train'][..., 0].std())
     # Data format
     for category in ['train', 'val', 'test']:
-        data['x_' + category][..., :-1] = scaler_x.transform(data['x_' + category][..., :-1])
-        data['y_' + category] = scaler_y.transform(data['y_' + category])
+        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+        data['y_' + category][..., 0] = scaler.transform(data['y_' + category][..., 0])
     data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size, shuffle=True)
     data['val_loader'] = DataLoader(data['x_val'], data['y_val'], test_batch_size, shuffle=False)
     data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size, shuffle=False)
-    
-    # data['scaler_x'] = scaler_x
-    data['scaler_y'] = scaler_y
+    data['scaler'] = scaler
 
     return data
 

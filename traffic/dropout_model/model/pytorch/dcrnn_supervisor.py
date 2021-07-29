@@ -11,7 +11,7 @@ from model.pytorch.loss import masked_mae_loss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Random seed
-random_seed = 2
+random_seed = 0
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
 np.random.seed(random_seed)
@@ -94,8 +94,8 @@ class DCRNNSupervisor:
 
     def load_model(self):
         self._setup_graph()
-        assert os.path.exists('models_seed2/epo%d.tar' % self._epoch_num), 'Weights at epoch %d not found' % self._epoch_num
-        checkpoint = torch.load('models_seed2/epo%d.tar' % self._epoch_num, map_location='cpu')
+        assert os.path.exists('models/epo%d.tar' % self._epoch_num), 'Weights at epoch %d not found' % self._epoch_num
+        checkpoint = torch.load('models/epo%d.tar' % self._epoch_num, map_location='cpu')
         self.dcrnn_model.load_state_dict(checkpoint['model_state_dict'])
         self._logger.info("Loaded model at {}".format(self._epoch_num))
 

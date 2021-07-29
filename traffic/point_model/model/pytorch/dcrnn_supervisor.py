@@ -7,27 +7,28 @@ import torch
 
 from lib import utils
 from model.pytorch.dcrnn_model import DCRNNModel
+#from model.pytorch.loss import masked_mae_loss
 from model.pytorch.loss import mae_loss
-#from model.pytorch.loss import rmse_loss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.is_available())
+# Random seed
+random_seed = 0
+torch.manual_seed(random_seed)
+torch.cuda.manual_seed(random_seed)
+np.random.seed(random_seed)
+
+
 class DCRNNSupervisor:
-    def __init__(self, random_seed, adj_mx, **kwargs):
+    def __init__(self, adj_mx, **kwargs):
         self._kwargs = kwargs
         self._data_kwargs = kwargs.get('data')
         self._model_kwargs = kwargs.get('model')
         self._train_kwargs = kwargs.get('train')
 
         self.max_grad_norm = self._train_kwargs.get('max_grad_norm', 1.)
-        
-        self.random_seed = random_seed
-        torch.manual_seed(self.random_seed)
-        torch.cuda.manual_seed(self.random_seed)
-        np.random.seed(self.random_seed)
 
         # logging.
-        self._log_dir = self._get_log_dir(kwargs,self.random_seed)
+        self._log_dir = self._get_log_dir(kwargs)
         #self._writer = SummaryWriter('runs/' + self._log_dir)
 
         log_level = self._kwargs.get('log_level', 'INFO')
@@ -35,7 +36,7 @@ class DCRNNSupervisor:
 
         # data set
         self._data = utils.load_dataset(**self._data_kwargs)
-        self.standard_scaler_y = self._data['scaler_y']
+        self.standard_scaler = self._data['scaler']
 
         self.num_nodes = int(self._model_kwargs.get('num_nodes', 1))
         self.input_dim = int(self._model_kwargs.get('input_dim', 1))
@@ -55,7 +56,7 @@ class DCRNNSupervisor:
             self.load_model()
 
     @staticmethod
-    def _get_log_dir(kwargs, random_seed):
+    def _get_log_dir(kwargs):
         log_dir = kwargs['train'].get('log_dir')
         if log_dir is None:
             batch_size = kwargs['data'].get('batch_size')
@@ -72,11 +73,10 @@ class DCRNNSupervisor:
                 filter_type_abbr = 'R'
             elif filter_type == 'dual_random_walk':
                 filter_type_abbr = 'DR'
-
-            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s_%d/' % (
+            run_id = 'dcrnn_%s_%d_h_%d_%s_lr_%g_bs_%d_%s/' % (
                 filter_type_abbr, max_diffusion_step, horizon,
                 structure, learning_rate, batch_size,
-                time.strftime('%m%d%H%M%S'), random_seed)
+                time.strftime('%m%d%H%M%S'))
             base_dir = kwargs.get('base_dir')
             log_dir = os.path.join(base_dir, run_id)
         if not os.path.exists(log_dir):
@@ -84,20 +84,20 @@ class DCRNNSupervisor:
         return log_dir
 
     def save_model(self, epoch):
-        if not os.path.exists('models_seed%d' % self.random_seed):
-            os.makedirs('models_seed%d' % self.random_seed)
+        if not os.path.exists('models/'):
+            os.makedirs('models/')
 
         config = dict(self._kwargs)
         config['model_state_dict'] = self.dcrnn_model.state_dict()
         config['epoch'] = epoch
-        torch.save(config, 'models_seed%d/epo%d.tar' % (self.random_seed, epoch))
+        torch.save(config, 'models/epo%d.tar' % epoch)
         self._logger.info("Saved model at {}".format(epoch))
-        return 'models_seed%d/epo%d.tar' % (self.random_seed, epoch)
+        return 'models/epo%d.tar' % epoch
 
     def load_model(self):
         self._setup_graph()
-        assert os.path.exists('models_seed%d/epo%d.tar' % (self.random_seed, self._epoch_num)), 'Weights at epoch %d not found' % self._epoch_num
-        checkpoint = torch.load('models_seed%d/epo%d.tar' % (self.random_seed, self._epoch_num), map_location='cpu')
+        assert os.path.exists('models/epo%d.tar' % self._epoch_num), 'Weights at epoch %d not found' % self._epoch_num
+        checkpoint = torch.load('models/epo%d.tar' % self._epoch_num, map_location='cpu')
         self.dcrnn_model.load_state_dict(checkpoint['model_state_dict'])
         self._logger.info("Loaded model at {}".format(self._epoch_num))
 
@@ -132,11 +132,11 @@ class DCRNNSupervisor:
 
             for _, (x, y) in enumerate(val_iterator):
                 x, y = self._prepare_data(x, y)
-                
+
                 output = self.dcrnn_model(x)
                 loss = self._compute_loss(y, output)
                 losses.append(loss.item())
-                
+
                 y_truths.append(y.cpu())
                 y_preds.append(output.cpu())
 
@@ -146,12 +146,12 @@ class DCRNNSupervisor:
 
             y_preds = np.concatenate(y_preds, axis=1)
             y_truths = np.concatenate(y_truths, axis=1)  # concatenate on batch dimension
-            
+
             y_truths_scaled = []
             y_preds_scaled = []
             for t in range(y_preds.shape[0]):
-                y_truth = self.standard_scaler_y.inverse_transform(y_truths[t])
-                y_pred = self.standard_scaler_y.inverse_transform(y_preds[t])
+                y_truth = self.standard_scaler.inverse_transform(y_truths[t])
+                y_pred = self.standard_scaler.inverse_transform(y_preds[t])
                 y_truths_scaled.append(y_truth)
                 y_preds_scaled.append(y_pred)
 
@@ -165,7 +165,8 @@ class DCRNNSupervisor:
         wait = 0
         optimizer = torch.optim.Adam(self.dcrnn_model.parameters(), lr=base_lr, eps=epsilon)
 
-        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=steps,gamma=lr_decay_ratio)
+        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=steps,
+                                                            gamma=lr_decay_ratio)
 
         self._logger.info('Start training ...')
 
@@ -194,7 +195,9 @@ class DCRNNSupervisor:
                 if batches_seen == 0:
                     # this is a workaround to accommodate dynamically registered parameters in DCGRUCell
                     optimizer = torch.optim.Adam(self.dcrnn_model.parameters(), lr=base_lr, eps=epsilon)
-                    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=steps,gamma=lr_decay_ratio)
+                    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=steps,
+                                                            gamma=lr_decay_ratio)
+
                 loss = self._compute_loss(y, output)
 
                 self._logger.debug(loss.item())
@@ -206,9 +209,8 @@ class DCRNNSupervisor:
 
                 # gradient clipping - this does it in place
                 torch.nn.utils.clip_grad_norm_(self.dcrnn_model.parameters(), self.max_grad_norm)
-                
+
                 optimizer.step()
-            
             self._logger.info("epoch complete")
             lr_scheduler.step()
             self._logger.info("evaluating now!")
@@ -248,18 +250,8 @@ class DCRNNSupervisor:
             elif val_loss >= min_val_loss:
                 wait += 1
                 if wait == patience:
-                    if epoch_num > steps[0]:
-                        self._logger.warning('Early stopping at epoch: %d' % epoch_num)
-                        break
-
-                #if(epoch_num < steps[0]):
-                #    if wait == 2*patience:
-                #        self._logger.warning('Early stopping at epoch: %d' % epoch_num)
-                #        break
-                #else:
-                #    if wait == patience:
-                #        self._logger.warning('Early stopping at epoch: %d' % epoch_num)
-                #        break
+                    self._logger.warning('Early stopping at epoch: %d' % epoch_num)
+                    break
 
     def _prepare_data(self, x, y):
         x, y = self._get_x_y(x, y)
@@ -295,7 +287,6 @@ class DCRNNSupervisor:
         return x, y
 
     def _compute_loss(self, y_true, y_predicted):
-        y_true = self.standard_scaler_y.inverse_transform(y_true)
-        y_predicted = self.standard_scaler_y.inverse_transform(y_predicted)
+        y_true = self.standard_scaler.inverse_transform(y_true)
+        y_predicted = self.standard_scaler.inverse_transform(y_predicted)
         return mae_loss(y_predicted, y_true)
-        #return rmse_loss(y_predicted, y_true)

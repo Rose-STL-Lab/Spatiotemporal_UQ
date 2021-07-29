@@ -42,6 +42,6 @@ if __name__ == '__main__':
     parser.add_argument('--use_cpu_only', default=False, type=str, help='Whether to run tensorflow on cpu.')
     parser.add_argument('--config_filename', default='data/model/pretrained/METR-LA/config.yaml', type=str,
                         help='Config file for pretrained model.')
-    parser.add_argument('--output_filename', default='dropout_result/seed2.npz')
+    parser.add_argument('--output_filename', default='dropout_result/seed0.npz')
     args = parser.parse_args()
     run_dcrnn(args)

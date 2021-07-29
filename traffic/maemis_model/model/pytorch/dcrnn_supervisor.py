@@ -8,7 +8,7 @@ import torch
 from lib import utils
 from model.pytorch.dcrnn_model import DCRNNModel
 #from model.pytorch.loss import masked_mae_loss
-from model.pytorch.loss import maemis_loss
+from model.pytorch.loss import quantile_loss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Random seed
@@ -289,4 +289,4 @@ class DCRNNSupervisor:
     def _compute_loss(self, y_true, y_predicted):
         y_true = self.standard_scaler.inverse_transform(y_true)
         y_predicted = self.standard_scaler.inverse_transform(y_predicted)
-        return maemis_loss(y_predicted, y_true)
+        return quantile_loss(y_predicted, y_true)
