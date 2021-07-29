@@ -20,6 +20,9 @@ pip install -r requirements.txt
 ```
 
 ## [Dataset](https://drive.google.com/drive/folders/102QfowJq7zmyR3W5LjF1K_eNZ0eAA8RL?usp=sharing)
+1.
+2.
+3. Download convLSTM_PM2_5/data to convLSTM_PM2_5 folder.
 
 
 ## Abstract:
