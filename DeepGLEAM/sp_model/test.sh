@@ -1,6 +1,6 @@
 #!/bin/bash
 
-week="week33"
+week="week34"
 mkdir ${week}result
 for d in $(find ./$week/* -type d)
 do
