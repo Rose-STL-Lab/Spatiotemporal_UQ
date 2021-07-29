@@ -8,6 +8,7 @@ import os
 
 def main():
     os.mkdir('./models')
+    os.mkdir('../loss_dropout')
     for k in range (20):
         # Random seed
         random_seed = k

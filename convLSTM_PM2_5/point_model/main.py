@@ -8,6 +8,7 @@ import os
 
 def main():
     os.mkdir('./models')
+    os.mkdir('../loss_point')
     for k in range (10):
         # Random seed
         random_seed = k
