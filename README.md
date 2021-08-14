@@ -36,7 +36,7 @@ Deep learning is gaining increasing popularity for spatiotemporal forecasting. H
 
 
 ## Model Training and Evaluation
-*uq_model* includes dropout_model, maemis_model, quantile_model, and sq_model.
+*uq_model* includes dropout_model, maemis_model, quantile_model, sq_model, and sgmcmc_model.
 ```bash
 # DeepGLEAM
 cd DeepGLEAM/uq_model
