@@ -59,7 +59,7 @@ python main.py
 @article{wu2021quantifying,
   title={Quantifying Uncertainty in Deep Spatiotemporal Forecasting},
   author={Wu, Dongxia and Gao, Liyao and Xiong, Xinyue and Chinazzi, Matteo and Vespignani, Alessandro and Ma, Yi-An and Yu, Rose},
-  journal={Proceedings of the 29th ACM SIGKDD international conference on Knowledge discovery and data mining (KDD)},
+  journal={Proceedings of the 27th ACM SIGKDD international conference on Knowledge discovery and data mining (KDD)},
   year={2021}
 }
 ```
